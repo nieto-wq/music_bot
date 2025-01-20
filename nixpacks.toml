@@ -1,6 +1,6 @@
 [phases.setup]
 # We need python + pip + ffmpeg so Nixpacks can use them
-nixPkgs = ["python3.11Full", "ffmpeg"]
+nixPkgs = ["python3", "ffmpeg"]
 
 [phases.install]
 # After Nixpacks installs python and pip, we can install from requirements.txt
