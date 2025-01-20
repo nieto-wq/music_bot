@@ -13,15 +13,20 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 song_queue = []
 
+COOKIES_ENV = os.environ.get("YT_COOKIES")  
+if COOKIES_ENV:
+    with open("cookies.txt", "w", encoding="utf-8") as f:
+        f.write(COOKIES_ENV)
+
 YTDL_OPTS = {
     'format': 'bestaudio/best',
     'noplaylist': True,
     'quiet': True,
+    "cookiefile": "cookies.txt" if os.path.isfile("cookies.txt") else None,
     'youtube_include_dash_manifest': False
 }
 
 FFMPEG_OPTIONS = {
-    # These reconnect options help if YouTube or the connection hiccups
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
 }
@@ -50,16 +55,13 @@ async def leave(ctx):
 
 @bot.command()
 async def play(ctx, url):
-    """Plays or queues audio from a YouTube URL."""
-    # If the bot is not in a voice channel, try joining the user's channel
     if not ctx.voice_client:
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
         else:
             await ctx.send("You're not in a voice channel, and I'm not in one!")
             return
-
-    # Use yt-dlp to get the direct stream URL
+            
     try:
         with yt_dlp.YoutubeDL(YTDL_OPTS) as ytdl:
             info = ytdl.extract_info(url, download=False)
@@ -69,10 +71,8 @@ async def play(ctx, url):
         await ctx.send(f"Failed to get video info: {e}")
         return
 
-    # Add the song to the queue
     song_queue.append({"url": stream_url, "title": title})
 
-    # If nothing is currently playing, start playing
     if not ctx.voice_client.is_playing():
         await play_next(ctx)
     else:
@@ -81,7 +81,6 @@ async def play(ctx, url):
 async def play_next(ctx):
     """Plays the next song in the queue, or leaves if the queue is empty."""
     if not song_queue:
-        # If the queue is empty, disconnect
         await ctx.send("peace")
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
@@ -91,14 +90,11 @@ async def play_next(ctx):
     url = next_song["url"]
     title = next_song["title"]
 
-    # IMPORTANT: We use 'await' here because your environment 
-    # has from_probe as an async function
     source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
 
     def after_playing(error):
         if error:
             print(f"Player error: {error}")
-        # Schedule the next song on the bot loop
         future = asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
         try:
             future.result()
