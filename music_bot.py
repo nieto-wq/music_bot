@@ -13,7 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 song_queue = []
 
-# Load cookies from env or local file
+
 COOKIES_ENV = os.environ.get("YT_COOKIES")
 if COOKIES_ENV:
     with open("cookies.txt", "w", encoding="utf-8") as f:
@@ -23,7 +23,7 @@ YTDL_OPTS = {
     'format': 'bestaudio/best',
     'noplaylist': False,
     'quiet': True,
-    'ignoreerrors': True,  # Ignore failing entries
+    'ignoreerrors': True,  
     'cookiefile': "cookies.txt" if os.path.isfile("cookies.txt") else None,
     'youtube_include_dash_manifest': False
 }
@@ -51,9 +51,9 @@ async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
         song_queue.clear()
-        await ctx.send("im out, and i cleared ur queue dummy")
+        await ctx.send("bye, i cleared ur queue dummy")
     else:
-        await ctx.send("i aint connected lol")
+        await ctx.send("im not connected lol")
 
 @bot.command()
 async def play(ctx, *, query):
@@ -72,7 +72,7 @@ async def play(ctx, *, query):
             await ctx.send("join a voice channel brah")
             return
 
-    # Attempt to extract info from YouTube
+    
     try:
         with yt_dlp.YoutubeDL(YTDL_OPTS) as ytdl:
             info = ytdl.extract_info(query, download=False)
@@ -81,15 +81,15 @@ async def play(ctx, *, query):
         logging.exception("Failed to get video info")
         return
 
-    # If it's a playlist or multiple entries
+    
     if 'entries' in info:
         playlist_title = info.get('title', 'Untitled Playlist')
-        entries = info['entries']  # Might contain None if ignoreerrors=True
+        entries = info['entries']  
         count = 0
         
         for entry in entries:
             if entry is None:
-                # Possibly an error or private track - skip
+                
                 continue
             track_url = entry.get('url')
             track_title = entry.get('title', 'Unknown Title')
@@ -98,22 +98,22 @@ async def play(ctx, *, query):
                 count += 1
 
         if count > 1:
-            await ctx.send(f"here bruh added **{count}** tracks from playlist: **{playlist_title}**")
+            await ctx.send(f"here ugly i added **{count}** tracks from playlist: **{playlist_title}**")
         elif count == 1:
-            await ctx.send(f"here bruh added track to queue: **{track_title}** (Position {len(song_queue)})")
+            await ctx.send(f"here ugly i added track to queue: **{track_title}** (Position {len(song_queue)})")
         else:
             await ctx.send("No valid tracks found in that playlist... might be private or erroring out.")
     else:
-        # Single track
+        
         stream_url = info.get("url")
         title = info.get("title", "Unknown Title")
         if stream_url:
             song_queue.append({"url": stream_url, "title": title})
             await ctx.send(f"**Added to queue**: {title} (position {len(song_queue)})")
         else:
-            await ctx.send("Couldn't get a valid stream from that link.")
+            await ctx.send("that link booty.")
 
-    # If nothing is playing, start playing
+    
     if not ctx.voice_client.is_playing():
         await play_next(ctx)
 
@@ -148,8 +148,8 @@ async def skip(ctx):
     """Skips the current song."""
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
-        await ctx.send("L bumps, skip!")
+        await ctx.send("poopy song, skip!")
     else:
-        await ctx.send("bruh is u dum no song playing!")
+        await ctx.send("bruh r u dum no song is playing!")
 
 bot.run(os.environ["DISCORD_TOKEN"])
