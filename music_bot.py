@@ -20,7 +20,7 @@ if COOKIES_ENV:
 
 YTDL_OPTS = {
     'format': 'bestaudio/best',
-    'noplaylist': False, 
+    'noplaylist': False,
     'quiet': True,
     "cookiefile": "cookies.txt" if os.path.isfile("cookies.txt") else None,
     'youtube_include_dash_manifest': False
@@ -56,14 +56,12 @@ async def leave(ctx):
 @bot.command()
 async def play(ctx, *, query):
     """Plays or queues audio from a YouTube link, mix, or search query."""
-
     if not (query.startswith("http://") or 
             query.startswith("https://") or 
             query.startswith("www.") or 
             "youtube.com" in query or 
             "youtu.be" in query):
         query = f"ytsearch1:{query}"
-
 
     if not ctx.voice_client:
         if ctx.author.voice:
@@ -72,7 +70,6 @@ async def play(ctx, *, query):
             await ctx.send("join a voice channel brah")
             return
 
- 
     try:
         with yt_dlp.YoutubeDL(YTDL_OPTS) as ytdl:
             info = ytdl.extract_info(query, download=False)
@@ -80,12 +77,10 @@ async def play(ctx, *, query):
         await ctx.send(f"Failed to get video info: {e}")
         return
 
-   
     if 'entries' in info:
         playlist_title = info.get('title', 'Untitled Playlist')
         entries = info['entries']
         count = 0
-
         for entry in entries:
             if entry is None:
                 continue
@@ -94,21 +89,16 @@ async def play(ctx, *, query):
             song_queue.append({"url": track_url, "title": track_title})
             count += 1
 
-         if count > 1:
+        if count > 1:
             await ctx.send(f"here bruh added **{count}** tracks from playlist: **{playlist_title}**")
         else:
             await ctx.send(f"here bruh added track to queue: **{track_title}** (Position {len(song_queue)})")
-
-        await ctx.send(f"here bruh added **{count}** tracks from playlist: **{playlist_title}**")
-        
     else:
-      
         stream_url = info["url"]
         title = info.get("title", "Unknown Title")
         song_queue.append({"url": stream_url, "title": title})
         await ctx.send(f"**Added to queue**: {title} (position {len(song_queue)})")
 
-  
     if not ctx.voice_client.is_playing():
         await play_next(ctx)
 
@@ -129,7 +119,6 @@ async def play_next(ctx):
     def after_playing(error):
         if error:
             print(f"Player error: {error}")
-     
         future = asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
         try:
             future.result()
@@ -149,4 +138,5 @@ async def skip(ctx):
         await ctx.send("bruh is u dum no song playing!")
 
 bot.run(os.environ["DISCORD_TOKEN"])
+
 
