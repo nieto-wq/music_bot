@@ -41,7 +41,7 @@ async def join(ctx):
     if ctx.author.voice:
         await ctx.author.voice.channel.connect()
     else:
-        await ctx.send("You need to be in a voice channel for me to join!")
+        await ctx.send("lmao pea brain dimwit join a vc")
 
 @bot.command()
 async def leave(ctx):
@@ -49,9 +49,9 @@ async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
         song_queue.clear()
-        await ctx.send("Disconnected and cleared the queue.")
+        await ctx.send("im out, and i cleared ur queue dummy")
     else:
-        await ctx.send("I'm not connected to a voice channel.")
+        await ctx.send("i aint connected lol")
 
 @bot.command()
 async def play(ctx, url):
@@ -59,7 +59,7 @@ async def play(ctx, url):
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
         else:
-            await ctx.send("You're not in a voice channel, and I'm not in one!")
+            await ctx.send("join a voice channel brah")
             return
             
     try:
@@ -109,9 +109,9 @@ async def skip(ctx):
     """Skips the current song."""
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
-        await ctx.send("Skipping to the next song...")
+        await ctx.send("L bumps, skip!")
     else:
-        await ctx.send("No song is currently playing!")
+        await ctx.send("bruh is u dum no song playing!")
 
 
 bot.run(os.environ["DISCORD_TOKEN"])
