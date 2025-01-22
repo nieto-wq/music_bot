@@ -55,13 +55,14 @@ async def leave(ctx):
 
 @bot.command()
 async def play(ctx, *, query):
+    
      if not (query.startswith("http://") or 
             query.startswith("https://") or 
             query.startswith("www.") or 
             "youtube.com" in query or 
             "youtu.be" in query):
         query = f"ytsearch1:{query}"
-
+        
     if not ctx.voice_client:
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
