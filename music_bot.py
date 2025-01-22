@@ -54,29 +54,49 @@ async def leave(ctx):
         await ctx.send("i aint connected lol")
 
 @bot.command()
-async def play(ctx, url):
+async def play(ctx, *, query):
+     if not (query.startswith("http://") or 
+            query.startswith("https://") or 
+            query.startswith("www.") or 
+            "youtube.com" in query or 
+            "youtu.be" in query):
+        query = f"ytsearch1:{query}"
+
     if not ctx.voice_client:
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
         else:
             await ctx.send("join a voice channel brah")
             return
-            
     try:
         with yt_dlp.YoutubeDL(YTDL_OPTS) as ytdl:
-            info = ytdl.extract_info(url, download=False)
-            stream_url = info["url"]
-            title = info.get("title", "Unknown Title")
+            info = ytdl.extract_info(query, download=False)
     except Exception as e:
         await ctx.send(f"Failed to get video info: {e}")
         return
+    if 'entries' in info:
+        playlist_title = info.get('title', 'Untitled Playlist')
+        entries = info['entries']
+        count = 0
 
-    song_queue.append({"url": stream_url, "title": title})
+        for entry in entries:
+            if entry is None:
+                continue
+            track_url = entry['url']
+            track_title = entry.get('title', 'Unknown Title')
+            song_queue.append({"url": track_url, "title": track_title})
+            count += 1
+
+        await ctx.send(f"holy guacamole! added **{count}** tracks from playlist: **{playlist_title}**")
+
+    else:
+        stream_url = info["url"]
+        title = info.get("title", "Unknown Title")
+        song_queue.append({"url": stream_url, "title": title})
+        await ctx.send(f"**Added to queue**: {title} (position {len(song_queue)})")
 
     if not ctx.voice_client.is_playing():
         await play_next(ctx)
-    else:
-        await ctx.send(f"**Added to queue**: {title} (position {len(song_queue)})")
 
 async def play_next(ctx):
     """Plays the next song in the queue, or leaves if the queue is empty."""
