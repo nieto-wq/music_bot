@@ -13,14 +13,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 song_queue = []
 
-COOKIES_ENV = os.environ.get("YT_COOKIES")  
+COOKIES_ENV = os.environ.get("YT_COOKIES")
 if COOKIES_ENV:
     with open("cookies.txt", "w", encoding="utf-8") as f:
         f.write(COOKIES_ENV)
 
 YTDL_OPTS = {
     'format': 'bestaudio/best',
-    'noplaylist': True,
+    'noplaylist': False,  # Allows playlist extraction
     'quiet': True,
     "cookiefile": "cookies.txt" if os.path.isfile("cookies.txt") else None,
     'youtube_include_dash_manifest': False
@@ -55,26 +55,32 @@ async def leave(ctx):
 
 @bot.command()
 async def play(ctx, *, query):
-    
-     if not (query.startswith("http://") or 
+    """Plays or queues audio from a YouTube link, mix, or search query."""
+    # If user input doesn't look like a URL, treat it as a search.
+    if not (query.startswith("http://") or 
             query.startswith("https://") or 
             query.startswith("www.") or 
             "youtube.com" in query or 
             "youtu.be" in query):
         query = f"ytsearch1:{query}"
-        
+
+    # Join voice if not connected
     if not ctx.voice_client:
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
         else:
             await ctx.send("join a voice channel brah")
             return
+
+    # Use yt-dlp to retrieve info (single video or playlist)
     try:
         with yt_dlp.YoutubeDL(YTDL_OPTS) as ytdl:
             info = ytdl.extract_info(query, download=False)
     except Exception as e:
         await ctx.send(f"Failed to get video info: {e}")
         return
+
+    # Check if playlist or single track
     if 'entries' in info:
         playlist_title = info.get('title', 'Untitled Playlist')
         entries = info['entries']
@@ -89,13 +95,14 @@ async def play(ctx, *, query):
             count += 1
 
         await ctx.send(f"holy guacamole! added **{count}** tracks from playlist: **{playlist_title}**")
-
     else:
+        # Single video
         stream_url = info["url"]
         title = info.get("title", "Unknown Title")
         song_queue.append({"url": stream_url, "title": title})
         await ctx.send(f"**Added to queue**: {title} (position {len(song_queue)})")
 
+    # If nothing is currently playing, start
     if not ctx.voice_client.is_playing():
         await play_next(ctx)
 
@@ -116,6 +123,7 @@ async def play_next(ctx):
     def after_playing(error):
         if error:
             print(f"Player error: {error}")
+        # After finishing, call play_next again
         future = asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
         try:
             future.result()
@@ -134,5 +142,5 @@ async def skip(ctx):
     else:
         await ctx.send("bruh is u dum no song playing!")
 
-
 bot.run(os.environ["DISCORD_TOKEN"])
+
