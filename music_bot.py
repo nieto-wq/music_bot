@@ -94,7 +94,7 @@ async def play(ctx, *, query):
             song_queue.append({"url": track_url, "title": track_title})
             count += 1
 
-        await ctx.send(f"holy guacamole! added **{count}** tracks from playlist: **{playlist_title}**")
+        await ctx.send(f"here bruh added **{count}** tracks from playlist: **{playlist_title}**")
     else:
         # Single video
         stream_url = info["url"]
