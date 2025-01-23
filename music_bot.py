@@ -12,7 +12,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 song_queue = []
-
+inactivity_task = None  
 
 COOKIES_ENV = os.environ.get("YT_COOKIES")
 if COOKIES_ENV:
@@ -23,7 +23,7 @@ YTDL_OPTS = {
     'format': 'bestaudio/best',
     'noplaylist': False,
     'quiet': True,
-    'ignoreerrors': True,  
+    'ignoreerrors': True,
     'cookiefile': "cookies.txt" if os.path.isfile("cookies.txt") else None,
     'youtube_include_dash_manifest': False
 }
@@ -48,9 +48,14 @@ async def join(ctx):
 @bot.command()
 async def leave(ctx):
     """Leaves the voice channel if currently in one, and clears the queue."""
+    global inactivity_task
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
         song_queue.clear()
+        
+        if inactivity_task and not inactivity_task.done():
+            inactivity_task.cancel()
+            inactivity_task = None
         await ctx.send("bye, i cleared ur queue dummy")
     else:
         await ctx.send("im not connected lol")
@@ -65,6 +70,7 @@ async def play(ctx, *, query):
             "youtu.be" in query):
         query = f"ytsearch1:{query}"
 
+    
     if not ctx.voice_client:
         if ctx.author.voice:
             await ctx.author.voice.channel.connect()
@@ -84,12 +90,11 @@ async def play(ctx, *, query):
     
     if 'entries' in info:
         playlist_title = info.get('title', 'Untitled Playlist')
-        entries = info['entries']  
+        entries = info['entries']
         count = 0
         
         for entry in entries:
             if entry is None:
-                
                 continue
             track_url = entry.get('url')
             track_title = entry.get('title', 'Unknown Title')
@@ -118,18 +123,32 @@ async def play(ctx, *, query):
         await play_next(ctx)
 
 async def play_next(ctx):
-    """Plays the next song in the queue, or leaves if the queue is empty."""
+    """Plays the next song in the queue or (if empty) schedules inactivity."""
+    global inactivity_task
+
     if not song_queue:
-        await ctx.send("peace")
-        if ctx.voice_client:
-            await ctx.voice_client.disconnect()
+       
+        await ctx.send("No songs left in queue.")
+        
+        inactivity_task = asyncio.create_task(schedule_inactivity_timeout(ctx, 120))
         return
+
+    
+    if inactivity_task and not inactivity_task.done():
+        inactivity_task.cancel()
+        inactivity_task = None
 
     next_song = song_queue.pop(0)
     url = next_song["url"]
     title = next_song["title"]
 
-    source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
+    try:
+        source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
+    except Exception as e:
+        await ctx.send(f"Error creating source for {title}: {e}")
+        logging.exception("FFmpeg error")
+        
+        return await play_next(ctx)
 
     def after_playing(error):
         if error:
@@ -151,5 +170,19 @@ async def skip(ctx):
         await ctx.send("poopy song, skip!")
     else:
         await ctx.send("bruh r u dum no song is playing!")
+
+async def schedule_inactivity_timeout(ctx, wait_time: int):
+    """Wait for `wait_time` seconds, then disconnect if still not playing."""
+    try:
+        await asyncio.sleep(wait_time)
+    except asyncio.CancelledError:
+        
+        return
+
+    
+    if ctx.voice_client and not ctx.voice_client.is_playing():
+        await ctx.send("peace")
+        await ctx.voice_client.disconnect()
+        song_queue.clear()
 
 bot.run(os.environ["DISCORD_TOKEN"])
