@@ -107,7 +107,7 @@ async def play(ctx, *, query):
         elif count == 1:
             await ctx.send(f"here ugly i added track to queue: **{track_title}** (Position {len(song_queue)})")
         else:
-            await ctx.send("No valid tracks found in that playlist... might be private or erroring out.")
+            await ctx.send("idk")
     else:
         
         stream_url = info.get("url")
